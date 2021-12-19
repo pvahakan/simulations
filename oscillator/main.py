@@ -3,26 +3,40 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-k = 20
-h = 0.07
-m = 0.055
-c = 0.15
-# c = [0.5, 1.0, 1.5, 2.0]
+class Oscillator:
+    def __init__(self, k, h, m, c=0):
+        '''
+        k = spring constant
+        h = height at start
+        m = mass
+        c = viscous damping coefficient
+        '''
+        self.k = k
+        self.h = h
+        self.m = m
+        self.c = c
 
-def alpha(c, m):
-    return - c/(2*m)
+    def alpha(self):
+        return - self.c / (2 * self.m)
 
-def beta(c, m, k):
-    return np.sqrt(4*m*k - c**2) / (2*m)
+    def beta(self):
+        return np.sqrt(4 * self.m * self.k - self.c**2) / (2 * self.m)
 
-def position(h, c, m, k, t):
-    a = alpha(c, m)
-    b = beta(c, m, k)
-    return h * np.exp(a*t) * (np.cos(b*t) - a/b * np.sin(b*t))
+    def position(self, t):
+        a = self.alpha()
+        b = self.beta()
+        return self.h * np.exp(a * t) * (np.cos(b * t) - a / b * np.sin(b * t))
 
 if __name__ == '__main__':
-    t = np.linspace(0, 5, 200)
-    x = position(h, c, m, k, t)
+    k = 20
+    h = 0.07
+    m = 0.055
+    c = 0.15
 
+    t = np.linspace(0, 3, 300)
+
+    damped_oscillator = Oscillator(k, h, m, c)
+    x = damped_oscillator.position(t)
+    
     plt.plot(t, x)
     plt.show()
