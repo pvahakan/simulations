@@ -12,8 +12,6 @@ pulkka_setup = {
     'theta': 25 * math.pi / 180 # mäen kaltevuus (rad)
 }
 
-t = np.linspace(0, 60, 180)
-
 def print_setup():
     print('\n--------------------------')
     print(f"Lähtökorkeus: {pulkka_setup['h']} m")
@@ -26,20 +24,43 @@ def print_setup():
 def lahtee_liikkeelle():
     return pulkka_setup['mu_0'] < np.tan(pulkka_setup['theta'])
 
-def laske_paikka(t):
+def kiihtyvyyden_kesto(h, theta, mu):
     """
-    Laskee pulkan paikan mäen jyrkällä osalla ajanhetkellä t. Paikka 0 on lähtöpaikka
-    ja paikan lukuarvo on metrejä lähtöpaikasta alamäkeen.
+    Laskee kiihtyvän liikkeen keston laskukorkeuteen, -kulmaan ja kitkakertoimeen perustuen.
     """
-    kulma = pulkka_setup['theta']
-    paikat =  1/2 * 9.81 * t**2 * (np.sin(kulma) - pulkka_setup['mu'] * np.cos(kulma))
-    maessa = paikat < pulkka_setup['h'] / np.sin(pulkka_setup['theta'])
-    maen_alla = paikat > pulkka_setup['h'] / np.sin(pulkka_setup['theta'])
-    pulkan_paikat = paikat[maessa]
-    pulkan_paikat = np.append(pulkan_paikat, np.repeat(pulkan_paikat[-1], len(paikat[maen_alla])))
-    print(len(paikat), len(paikat[maessa]), len(paikat[maen_alla]))
-    print(pulkan_paikat)
-    return pulkan_paikat
+    x = h / np.sin(theta)
+    return np.sqrt((2*x) / (9.81 * (np.sin(theta) - mu * np.cos(theta))))
+
+def kiihtyvan_pulkan_paikka():
+    """
+    Laskee ja palauttaa kiihtyvän liikkeen keston sekä paikkakoordinaatit.
+    """
+    t_max = kiihtyvyyden_kesto(pulkka_setup['h'], pulkka_setup['theta'], pulkka_setup['mu'])
+    t = np.linspace(0, t_max, int(t_max / 0.01))
+    theta = pulkka_setup['theta']
+    mu = pulkka_setup['mu']
+    return t, 1/2 * 9.81 * t**2 * (np.sin(theta) - mu * np.cos(theta))
+
+def kiihtyvan_pulkan_nopeus():
+    t, x = kiihtyvan_pulkan_paikka()
+    return laske_nopeus(x, t)
+
+def hidastuvan_liikkeen_kesto(v_0, mu):
+    """
+    Laskee ja palauttaa hidastuvan liikkeen keston alkaen hetkestä, jolloin hidastuva liike alkaa.
+    """
+    return v_0 / (mu * 9.81)
+
+def hidastuvan_liikkeen_paikka(x_0, v_0, mu):
+    """
+    Laskee ja palauttaa hidastuvan liikkeen keston ja paikan alkaen hetkestä, jolloin hidastuva liike alkaa.
+
+    Huom! Tässä käytetty t alkaa hetkestä 0.01 (sämpläys 0.01 s välein), koska kiihtyvä liike loppuu muuten
+    samaan hetkeen. Tästä aiheutuu ongelmia nopeuden laskennassa.
+    """
+    t_max = hidastuvan_liikkeen_kesto(v_0, mu)
+    t = np.linspace(0.01, t_max, int((t_max - 0.01) / 0.01)) # Huom. aika, eri kuin kiihtyvän loppuaika
+    return t, x_0 + v_0 * t - 1/2 * mu * 9.81 * t**2
 
 def laske_nopeus(x, t):
     dt = t[1] - t[0]
@@ -50,16 +71,31 @@ def plot():
     fig, axs = plt.subplots(2, 1)
     fig.subplots_adjust(hspace=0.5)
 
-    paikka = laske_paikka(t)
-    nopeus = laske_nopeus(paikka, t)
+    # Kiihtyvä liike
+    aika, paikka = kiihtyvan_pulkan_paikka()
+    nopeus = kiihtyvan_pulkan_nopeus()
 
-    axs[0].plot(t, paikka)
+    # Hidastuva liike
+    hidastuvan_liikkeen_alkunopeus = nopeus[-1]
+    hidastuvan_liikkeen_alkupaikka = paikka[-1]
+
+    hid_t, hid_p = hidastuvan_liikkeen_paikka(hidastuvan_liikkeen_alkupaikka, hidastuvan_liikkeen_alkunopeus, pulkka_setup['mu'])
+
+    # Yhdistetään tiedot plottausta varten
+    aika = np.append(aika, aika[-1] + hid_t)
+    paikka = np.append(paikka, hid_p)
+
+    nopeus = laske_nopeus(paikka, aika)
+
+    axs[0].plot(aika, paikka)
     axs[0].set_xlabel('t (s)')
     axs[0].set_ylabel('x (m)')
+    axs[0].grid(True)
 
-    axs[1].plot(t, nopeus)
+    axs[1].plot(aika, nopeus)
     axs[1].set_xlabel('t (s)')
     axs[1].set_ylabel('v (m/s)')
+    axs[1].grid(True)
 
     plt.show()
 
