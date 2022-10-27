@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from audioop import mul
 import numpy as np
 import matplotlib.pyplot as plt
 import math
@@ -105,5 +106,129 @@ def run():
     if lahtee_liikkeelle():
         plot()
 
+class Maki():
+    def __init__(self, theta, h):
+        """
+        Ottaa argumentiksi kulman asteina ja korkeuden metreinä.
+        """
+        self.h = h
+        self.theta = theta * math.pi / 180 # Tallennetaan kulma radiaaneina
+
+    def jyrkkyys(self):
+        """
+        Palauttaa mäen kaltevuuden radiaaneina.
+        """
+        return self.theta
+
+    def korkeus(self):
+        """
+        Palauttaa mäen korkeuden meterinä.
+        """
+        return self.h
+
+class Pulkka():
+    def __init__(self, mu, mu_0, m):
+        self.mu = mu
+        self.mu_0 = mu_0
+        self.m = m
+
+class PulkanLahto():
+    def __init__(self, pulkka, maki):
+        self.pulkka = pulkka
+        self.maki = maki
+
+    def onnistuu(self):
+        return self.pulkka.mu_0 < np.tan(self.maki.theta)
+
+class PulkanKiihtyvyys():
+    def __init__(self, pulkka : Pulkka, maki : Maki):
+        self.pulkka = pulkka
+        self.maki = maki
+
+    def laske_kesto(self):
+        """
+        Laskee kiihtyvän liikkeen keston laskukorkeuteen, -kulmaan ja kitkakertoimeen perustuen.
+        """
+        x = self.maki.h / np.sin(self.maki.theta)
+
+        # Kiihtyvän liikkeen kesto tallennetaan muuttujaan t_max
+        self.t_max = np.sqrt((2*x) / (9.81 * (np.sin(self.maki.theta) - self.pulkka.mu * np.cos(self.maki.theta))))
+
+    def laske_koordinaatit(self):
+        """
+        Laskee kiihtyvän liikkeen ajat ja paikat niitä vastaaviin luokkamuuttujiin.
+        """
+        self.laske_kesto()
+        try:
+            print(self.t_max)
+            self.t = np.linspace(0, self.t_max, int(self.t_max / 0.01))
+            self.x = 1/2 * 9.81 * self.t**2 * (np.sin(self.maki.theta) - self.pulkka.mu * np.cos(self.maki.theta))
+        except AttributeError:
+            print('Kiihtyvän liikkeen kestoa ei ole määritetty.')
+
+class PulkanHidastuvuus():
+    def __init__(self):
+        pass
+
+    def laske_kesto(self):
+        pass
+
+    def laske_ajat(self):
+        pass
+
+    def laske_paikat(self):
+        pass
+
+class PulkkaSimulaatio():
+    def __init__(self):
+        mu_0 = 0.12 # lepokitka, puu-lumi
+        mu = 0.06 # liikekitka, puu-lumi
+        m = 25 # massa (kg)
+        theta = 25 # mäen kaltevuus (rad)
+        h = 10 # mäen korkeus (m)
+
+        self.maki = Maki(theta, h)
+        self.pulkka = Pulkka(mu, mu_0, m)
+
+    def __str__(self):
+        return (
+            '\n--------------------------\n'
+            f"Lähtökorkeus: {self.maki.h} m\n"
+            f"Mäen kaltevuus: {self.maki.theta / math.pi * 180} deg\n"
+            f"Lepokitka: {self.pulkka.mu_0}\n"
+            f"Liukukitka: {self.pulkka.mu}\n"
+            f"Pulkan massa: {self.pulkka.m} kg\n"
+            '--------------------------\n'
+        )
+
+    def start(self):
+        lahto = PulkanLahto(self.pulkka, self.maki)
+        if lahto.onnistuu():
+            print('Lähtö onnistui')
+            kiihtyva_vaihe = PulkanKiihtyvyys(self.pulkka, self.maki)
+            kiihtyva_vaihe.laske_koordinaatit()
+            hidastuva_vaihe = PulkanHidastuvuus()
+        else:
+            print('Ei onnistunut')
+
+    def kiihtyvyyden_kesto(self):
+        """
+        Laskee kiihtyvän liikkeen keston laskukorkeuteen, -kulmaan ja kitkakertoimeen perustuen.
+        """
+        x = self.h / np.sin(self.theta)
+        self.kiihtyvan_liikkeen_kesto = np.sqrt((2*x) / (9.81 * (np.sin(self.theta) - self.mu * np.cos(self.theta))))
+
+    def kiihtyvan_pulkan_paikka(self):
+        """
+        Laskee ja palauttaa kiihtyvän liikkeen keston sekä paikkakoordinaatit.
+        """
+        # t_max = kiihtyvyyden_kesto(pulkka_setup['h'], pulkka_setup['theta'], pulkka_setup['mu'])
+        self.kiihtyvyyden_ajat = np.linspace(0, self.kiihtyvan_liikkeen_kesto, int(self.kiihtyvan_liikkeen_kesto / 0.01))
+        self.kiihtyvyyden_paikat = 1/2 * 9.81 * self.kiihtyvyyden_ajat**2 * (np.sin(self.theta) - self.mu * np.cos(self.theta))
+
+
 if __name__ == '__main__':
-    run()
+    # run()
+    pulkkasimulaatio = PulkkaSimulaatio()
+    print(pulkkasimulaatio)
+    pulkkasimulaatio.start()
